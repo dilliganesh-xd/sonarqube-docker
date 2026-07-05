@@ -34,7 +34,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     bat """
-                    %SCANNER_HOME%\\bin\\sonar-scanner.bat ^
+                    "%SCANNER_HOME%\\bin\\sonar-scanner.bat" ^
                     -Dsonar.projectKey=week12-sonarqube ^
                     -Dsonar.projectName=week12-sonarqube ^
                     -Dsonar.sources=src ^
@@ -57,10 +57,9 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-
-                    bat """
-echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-"""
+                    bat '''
+                    docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                    '''
                 }
             }
         }
@@ -76,15 +75,29 @@ echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                 bat 'docker run --rm %IMAGE_NAME%'
             }
         }
+
+        stage('Docker Logout') {
+            steps {
+                bat 'docker logout'
+            }
+        }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo '==================================='
+            echo ' Pipeline completed successfully!'
+            echo '==================================='
         }
 
         failure {
-            echo 'Pipeline failed!'
+            echo '==================================='
+            echo ' Pipeline failed!'
+            echo '==================================='
+        }
+
+        always {
+            cleanWs()
         }
     }
 }

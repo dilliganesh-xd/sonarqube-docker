@@ -7,6 +7,7 @@ pipeline {
 
     environment {
         SCANNER_HOME = tool 'SonarScanner'
+        IMAGE_NAME = "dilliganeshdevops/sonarqube-docker:latest"
     }
 
     stages {
@@ -45,14 +46,43 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                bat 'docker build -t sonarqube-docker .'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
-        stage('Run Docker') {
+        stage('Docker Login') {
             steps {
-                bat 'docker run --rm sonarqube-docker'
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+
+                    bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
+                }
             }
+        }
+
+        stage('Docker Push') {
+            steps {
+                bat 'docker push %IMAGE_NAME%'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                bat 'docker run --rm %IMAGE_NAME%'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
